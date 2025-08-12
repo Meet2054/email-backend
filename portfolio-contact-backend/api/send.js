@@ -18,16 +18,55 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('Request body:', req.body);
-    console.log('Content-Type:', req.headers['content-type']);
+    // Debug logging
+    console.log('=== REQUEST DEBUG ===');
+    console.log('Method:', req.method);
+    console.log('Headers:', req.headers);
+    console.log('Raw body:', req.body);
+    console.log('Body type:', typeof req.body);
+    console.log('Body keys:', Object.keys(req.body || {}));
+    console.log('====================');
 
-    const { name, email, message } = req.body;
+    // Handle different body formats
+    let body = req.body;
+    
+    // If body is a string, try to parse it
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch (e) {
+        console.log('Failed to parse string body:', e);
+      }
+    }
+
+    // If body is still not an object, try to get it from raw body
+    if (!body || typeof body !== 'object') {
+      console.log('Body is not an object, trying alternative approach');
+      // Try to get from raw body if available
+      if (req.rawBody) {
+        try {
+          body = JSON.parse(req.rawBody);
+        } catch (e) {
+          console.log('Failed to parse raw body:', e);
+        }
+      }
+    }
+
+    console.log('Processed body:', body);
+
+    const { name, email, message } = body || {};
 
     // Validate required fields
     if (!name || !email || !message) {
       console.log('Missing fields - name:', !!name, 'email:', !!email, 'message:', !!message);
       return res.status(400).json({
-        error: 'Missing required fields: name, email, and message are required'
+        error: 'Missing required fields: name, email, and message are required',
+        debug: {
+          receivedBody: body,
+          name: !!name,
+          email: !!email,
+          message: !!message
+        }
       });
     }
 
@@ -73,8 +112,9 @@ export default async function handler(req, res) {
       });
     } else {
       res.status(500).json({
-        error: 'Failed to send email. Please try again later.'
+        error: 'Failed to send email. Please try again later.',
+        debug: error.message
       });
     }
   }
-}
+} 
