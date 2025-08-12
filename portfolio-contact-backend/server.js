@@ -10,8 +10,13 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Create Nodemailer transporter
 const transporter = nodemailer.createTransport({
@@ -36,10 +41,14 @@ transporter.verify(function(error, success) {
 // POST endpoint for contact form submissions
 app.post('/send', async (req, res) => {
   try {
+    console.log('Request body:', req.body); // Debug log
+    console.log('Content-Type:', req.headers['content-type']); // Debug log
+    
     const { name, email, message } = req.body;
 
     // Validate required fields
     if (!name || !email || !message) {
+      console.log('Missing fields - name:', !!name, 'email:', !!email, 'message:', !!message); // Debug log
       return res.status(400).json({
         error: 'Missing required fields: name, email, and message are required'
       });
@@ -88,6 +97,17 @@ app.post('/send', async (req, res) => {
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
+});
+
+// Test endpoint to check request handling
+app.post('/test', (req, res) => {
+  console.log('Test endpoint - Headers:', req.headers);
+  console.log('Test endpoint - Body:', req.body);
+  res.json({ 
+    message: 'Test endpoint working',
+    body: req.body,
+    headers: req.headers
+  });
 });
 
 // Start server
